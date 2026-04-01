@@ -1,1 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SS 2A Further Mathematics CBT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:system-ui,-apple-system,sans-serif;background:#eef1f8;}
+  input,button{font-family:inherit;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:#c5d0e0;border-radius:3px;}
+  @media print{.no-print{display:none!important;}}
+</style>
+</head>
+<body>
+<div id="root"></div>
 
+<script type="text/babel">
+const{useState,useEffect,useRef,useCallback}=React;
+
+/* ══ CONFIG — change ADMIN_CODE to your own secret ═══════ */
+const ADMIN_CODE  = "TEACHER2025";
+const DURATION_S  = 90 * 60;
+const MAX_VIOL    = 3;
+const PENALTY_PT  = 0.5;
+const QUOTA = {
+  "Equations of a Circle":4,
+  "Tangent to a Circle":2,
+  "Probability":4,
+  "Permutation":4,
+  "Combination":2,
+  "Binomial Expansion":4,
+};
+
+/* ══ QUESTION BANK (46 questions) ════════════════════════ */
+const QB = [
+  {id:"c1",topic:"Equations of a Circle",q:"What is the equation of a circle with centre (3, −4) and radius 5?",opts:["(x−3)²+(y+4)²=25","(x+3)²+(y−4)²=25","(x−3)²+(y−4)²=25","(x−3)²+(y+4)²=5"],ans:"(x−3)²+(y+4)²=25"},
+  {id:"c2",topic:"Equations of a Circle",q:"Find the centre of the circle x²+y²−6x+8y+9=0.",opts:["(3,−4)","(−3,4)","(6,−8)","(3,4)"],ans:"(3,−4)"},
+  {id:"c3",topic:"Equations of a Circle",q:"Find the radius of the circle x²+y²+4x−6y+4=0.",opts:["3","4","√13","2"],ans:"3"},
+  {id:"c4",topic:"Equations of a Circle",q:"What is the equation of a circle with centre (0,0) and radius 7?",opts:["x²+y²=49","x²+y²=7","x²+y²=14","x²+y²=√7"],ans:"x²+y²=49"},
+  {id:"c5",topic:"Equations of a Circle",q:"A circle has diameter endpoints A(2,0) and B(8,0). Find its equation.",opts:["(x−5)²+y²=9","(x−5)²+y²=3","(x−4)²+y²=9","(x−5)²+y²=36"],ans:"(x−5)²+y²=9"},
+  {id:"c6",topic:"Equations of a Circle",q:"The general equation x²+y²+2gx+2fy+c=0 has centre:",opts:["(−g,−f)","(g,f)","(−g,f)","(g,−f)"],ans:"(−g,−f)"},
+  {id:"c7",topic:"Equations of a Circle",q:"Find the radius of the circle x²+y²−10x+6y+18=0.",opts:["4","5","√34","√18"],ans:"4"},
+  {id:"c8",topic:"Equations of a Circle",q:"Find the equation of the circle passing through (0,0),(4,0) and (0,3).",opts:["(x−2)²+(y−1.5)²=6.25","(x−2)²+(y−1.5)²=5","(x−4)²+(y−3)²=25","(x−2)²+(y−1.5)²=25"],ans:"(x−2)²+(y−1.5)²=6.25"},
+  {id:"t1",topic:"Tangent to a Circle",q:"Find the equation of the tangent to x²+y²=25 at (3,4).",opts:["3x+4y=25","4x+3y=25","3x−4y=25","3x+4y=5"],ans:"3x+4y=25"},
+  {id:"t2",topic:"Tangent to a Circle",q:"Find the length of the tangent from (5,0) to x²+y²=9.",opts:["4","√34","5","3"],ans:"4"},
+  {id:"t3",topic:"Tangent to a Circle",q:"Find the equation of the tangent to x²+y²=13 at (2,3).",opts:["2x+3y=13","3x+2y=13","2x−3y=13","2x+3y=√13"],ans:"2x+3y=13"},
+  {id:"t4",topic:"Tangent to a Circle",q:"Find the length of the tangent from (0,5) to x²+y²=16.",opts:["3","√41","4","9"],ans:"3"},
+  {id:"t5",topic:"Tangent to a Circle",q:"A circle passes through (0,0),(6,0) and (0,8). What is its radius?",opts:["5","10","√48","8"],ans:"5"},
+  {id:"t6",topic:"Tangent to a Circle",q:"The tangent to a circle at any point is perpendicular to:",opts:["The radius at that point","The diameter","Any chord","The secant"],ans:"The radius at that point"},
+  {id:"t7",topic:"Tangent to a Circle",q:"Find the length of the tangent from (7,0) to x²+y²=25.",opts:["√24","√74","7","5"],ans:"√24"},
+  {id:"p1",topic:"Probability",q:"A fair die is rolled once. What is P(prime number)?",opts:["1/2","1/3","2/3","1/6"],ans:"1/2"},
+  {id:"p2",topic:"Probability",q:"P(A)=0.3, P(B)=0.4, A and B mutually exclusive. Find P(A∪B).",opts:["0.70","0.12","0.58","0.10"],ans:"0.70"},
+  {id:"p3",topic:"Probability",q:"P(A)=0.6, P(B)=0.5, P(A∩B)=0.3. Find P(A|B).",opts:["0.6","0.5","0.3","0.8"],ans:"0.6"},
+  {id:"p4",topic:"Probability",q:"A bag has 4 red and 3 blue balls. Find P(blue) on one draw.",opts:["3/7","4/7","3/4","1/3"],ans:"3/7"},
+  {id:"p5",topic:"Probability",q:"Three coins are tossed. What is P(exactly 2 heads)?",opts:["3/8","1/2","1/4","1/8"],ans:"3/8"},
+  {id:"p6",topic:"Probability",q:"A and B are independent. P(A)=1/3, P(B)=1/4. Find P(A∩B).",opts:["1/12","7/12","1/3","1/4"],ans:"1/12"},
+  {id:"p7",topic:"Probability",q:"A die is rolled and a coin tossed. How many outcomes in the sample space?",opts:["12","8","6","2"],ans:"12"},
+  {id:"p8",topic:"Probability",q:"P(A)=0.4, P(B)=0.5, P(A∩B)=0.2. Find P(A∪B).",opts:["0.7","0.9","0.2","0.6"],ans:"0.7"},
+  {id:"pm1",topic:"Permutation",q:"In how many ways can 6 different books be arranged on a shelf?",opts:["720","120","360","24"],ans:"720"},
+  {id:"pm2",topic:"Permutation",q:"In how many ways can 7 people sit around a circular table?",opts:["720","5040","120","42"],ans:"720"},
+  {id:"pm3",topic:"Permutation",q:"How many 4-digit numbers can be formed from 1,2,3,4,5 without repetition?",opts:["120","625","60","24"],ans:"120"},
+  {id:"pm4",topic:"Permutation",q:"How many distinct arrangements exist for the letters of LEVEL?",opts:["30","60","120","20"],ans:"30"},
+  {id:"pm5",topic:"Permutation",q:"Evaluate P(8,3).",opts:["336","56","512","168"],ans:"336"},
+  {id:"pm6",topic:"Permutation",q:"5 boys and 3 girls stand in a row with the 3 girls always together. How many ways?",opts:["4320","720","40320","2160"],ans:"4320"},
+  {id:"pm7",topic:"Permutation",q:"How many 3-digit codes can be formed from 0–9 with repetition allowed?",opts:["1000","720","504","900"],ans:"1000"},
+  {id:"pm8",topic:"Permutation",q:"How many distinct arrangements exist for the letters of NOON?",opts:["6","12","24","4"],ans:"6"},
+  {id:"cb1",topic:"Combination",q:"Evaluate C(10,3).",opts:["120","720","30","60"],ans:"120"},
+  {id:"cb2",topic:"Combination",q:"In how many ways can a team of 4 be chosen from 9 players?",opts:["126","3024","36","84"],ans:"126"},
+  {id:"cb3",topic:"Combination",q:"Choose 3 boys from 5 and 2 girls from 4. How many ways?",opts:["60","120","10","24"],ans:"60"},
+  {id:"cb4",topic:"Combination",q:"A committee of 3 men from 7 and 2 women from 4. How many ways?",opts:["210","35","6","840"],ans:"210"},
+  {id:"cb5",topic:"Combination",q:"If C(n,2)=15, find n.",opts:["6","5","7","4"],ans:"6"},
+  {id:"cb6",topic:"Combination",q:"In how many ways can a committee of 5 be formed from 12 people?",opts:["792","95040","60","132"],ans:"792"},
+  {id:"cb7",topic:"Combination",q:"2 representatives are chosen from 8 students. In how many ways?",opts:["28","56","16","8"],ans:"28"},
+  {id:"b1",topic:"Binomial Expansion",q:"Find the coefficient of x² in the expansion of (1+x)⁴.",opts:["6","4","1","12"],ans:"6"},
+  {id:"b2",topic:"Binomial Expansion",q:"Find the 5th term in the expansion of (1+x)⁷.",opts:["35x⁴","21x⁴","35x³","7x⁴"],ans:"35x⁴"},
+  {id:"b3",topic:"Binomial Expansion",q:"Find the coefficient of x³ in the expansion of (2+x)⁵.",opts:["40","80","10","160"],ans:"40"},
+  {id:"b4",topic:"Binomial Expansion",q:"Find the middle term in the expansion of (1+x)⁶.",opts:["20x³","15x³","6x³","10x³"],ans:"20x³"},
+  {id:"b5",topic:"Binomial Expansion",q:"Find the coefficient of x² in the expansion of (1+2x)⁵.",opts:["40","10","80","20"],ans:"40"},
+  {id:"b6",topic:"Binomial Expansion",q:"Write the first three terms in the expansion of (1−x)⁸.",opts:["1−8x+28x²","1+8x+28x²","1−8x−28x²","1−x+x²"],ans:"1−8x+28x²"},
+  {id:"b7",topic:"Binomial Expansion",q:"Find the term independent of x in the expansion of (x+1/x)⁶.",opts:["20","15","6","1"],ans:"20"},
+  {id:"b8",topic:"Binomial Expansion",q:"Find the sum of coefficients in (1+x)⁵ when x=1.",opts:["32","16","64","10"],ans:"32"},
+];
+
+/* ══ UTILS ═══════════════════════════════════════════════ */
+const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+const fmt=s=>`${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+const grade=s=>s>=16?"A":s>=14?"B":s>=12?"C":s>=8?"D":"F";
+const gc=g=>({A:"#16a34a",B:"#2563eb",C:"#d97706",D:"#ea580c",F:"#dc2626"})[g]||"#666";
+const pickQs=()=>{const by={};QB.forEach(q=>{if(!by[q.topic])by[q.topic]=[];by[q.topic].push(q);});const sel=[];Object.entries(QUOTA).forEach(([t,n])=>shuffle(by[t]||[]).slice(0,n).forEach(q=>sel.push({...q,sOpts:shuffle(q.opts)})));return shuffle(sel);};
+
+/* ══ LOCAL STORAGE (scores persist on same device/browser) ═ */
+const ROSTER_KEY="ss2a_cbt_roster_v1";
+const scoreKey=sid=>`ss2a_cbt_score_${sid.replace(/\W/g,"_")}`;
+const retakeKey=sid=>`ss2a_cbt_retake_${sid.replace(/\W/g,"_")}`;
+
+const lsGet=k=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+const lsDel=k=>{try{localStorage.removeItem(k);}catch{}};
+
+const saveScore=d=>{lsSet(scoreKey(d.sid),d);const r=lsGet(ROSTER_KEY)||[];if(!r.includes(d.sid))lsSet(ROSTER_KEY,[...r,d.sid]);};
+const getScore=sid=>lsGet(scoreKey(sid));
+const getAllScores=()=>{const r=lsGet(ROSTER_KEY)||[];return r.map(sid=>lsGet(scoreKey(sid))).filter(Boolean);};
+const grantRetake=sid=>lsSet(retakeKey(sid),{ok:true});
+const checkRetake=sid=>{const v=lsGet(retakeKey(sid));return v&&v.ok===true;};
+const clearRetake=sid=>{lsDel(scoreKey(sid));lsDel(retakeKey(sid));const r=lsGet(ROSTER_KEY)||[];lsSet(ROSTER_KEY,r.filter(s=>s!==sid));};
+
+/* ══ EXPORT CSV ══════════════════════════════════════════ */
+const exportCSV=scores=>{
+  const header=["Name","Student ID","Score","Total","Percentage","Grade","Violations","Penalty","Time Taken","Date"];
+  const rows=scores.map(s=>[
+    `"${s.name}"`,s.sid,s.finalScore,s.total,s.pct+"%",s.grade,
+    s.violations,s.penalty>0?`-${s.penalty}`:"0",
+    `${Math.floor((s.timeTaken||0)/60)}m ${(s.timeTaken||0)%60}s`,
+    `"${s.date}"`
+  ].join(","));
+  const csv=[header.join(","),...rows].join("\n");
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download=`SS2A_CBT_Results_${new Date().toLocaleDateString("en-NG").replace(/\//g,"-")}.csv`;
+  a.click();
+};
+
+/* ══ DESIGN ══════════════════════════════════════════════ */
+const NAV="#1a2e5a",GOLD="#e8a020",BG="#eef1f8",FF="system-ui,-apple-system,sans-serif";
+const card={background:"#fff",borderRadius:"14px",boxShadow:"0 2px 14px rgba(0,0,0,0.09)"};
+const baseInp={width:"100%",boxSizing:"border-box",padding:"10px 14px",border:"2px solid #e2e8f0",borderRadius:"8px",fontSize:"14px",outline:"none",fontFamily:FF};
+
+function App(){
+  const[screen,setScreen]=useState("login");
+  const[student,setStudent]=useState({name:"",sid:""});
+  const[questions,setQuestions]=useState([]);
+  const[current,setCurrent]=useState(0);
+  const[answers,setAnswers]=useState({});
+  const[timeLeft,setTimeLeft]=useState(DURATION_S);
+  const[viol,setViol]=useState(0);
+  const[violMsg,setViolMsg]=useState("");
+  const[result,setResult]=useState(null);
+  const[allScores,setAllScores]=useState([]);
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState("");
+  const[lName,setLName]=useState("");
+  const[lSid,setLSid]=useState("");
+  const[lAdmin,setLAdmin]=useState("");
+  const[gSid,setGSid]=useState("");
+  const[gMsg,setGMsg]=useState("");
+  const[confirmSub,setConfirmSub]=useState(false);
+  const[search,setSearch]=useState("");
+
+  const aRef=useRef({});const tlRef=useRef(DURATION_S);const vRef=useRef(0);
+  const subRef=useRef(false);const stRef=useRef({name:"",sid:""});
+  const qRef=useRef([]);const tmr=useRef(null);
+
+  useEffect(()=>{aRef.current=answers;},[answers]);
+  useEffect(()=>{tlRef.current=timeLeft;},[timeLeft]);
+  useEffect(()=>{vRef.current=viol;},[viol]);
+  useEffect(()=>{stRef.current=student;},[student]);
+  useEffect(()=>{qRef.current=questions;},[questions]);
+
+  const submit=useCallback(async(forced=false,autoMsg="")=>{
+    if(subRef.current)return;subRef.current=true;clearInterval(tmr.current);
+    const qs=qRef.current,ans=aRef.current,tl=tlRef.current,v=vRef.current,st=stRef.current;
+    const topicMap={};let correct=0;
+    qs.forEach(q=>{if(!topicMap[q.topic])topicMap[q.topic]={right:0,total:0};topicMap[q.topic].total++;if(ans[q.id]===q.ans){correct++;topicMap[q.topic].right++;}});
+    const penalty=+(v*PENALTY_PT).toFixed(1);
+    const finalScore=+Math.max(0,correct-penalty).toFixed(1);
+    const data={name:st.name,sid:st.sid,rawScore:correct,finalScore,total:qs.length,
+      pct:+((finalScore/qs.length)*100).toFixed(1),grade:grade(finalScore),
+      violations:v,penalty,timeTaken:DURATION_S-tl,
+      date:new Date().toLocaleString("en-NG"),topicMap,forced,autoMsg};
+    saveScore(data);setResult(data);setScreen("result");setConfirmSub(false);
+  },[]);
+
+  useEffect(()=>{
+    if(screen!=="exam")return;
+    tmr.current=setInterval(()=>{setTimeLeft(t=>{const n=t-1;tlRef.current=n;if(n<=0){clearInterval(tmr.current);submit(true,"Time expired — auto-submitted");return 0;}return n;});},1000);
+    return()=>clearInterval(tmr.current);
+  },[screen,submit]);
+
+  useEffect(()=>{
+    if(screen!=="exam")return;
+    const flag=reason=>{const nv=vRef.current+1;vRef.current=nv;setViol(nv);if(nv>=MAX_VIOL){setViolMsg("");submit(true,`Auto-submitted: ${MAX_VIOL} violations`);}else setViolMsg(`VIOLATION ${nv}/${MAX_VIOL}: ${reason}. Penalty −${PENALTY_PT} mark. ${MAX_VIOL-nv} warning(s) left.`);};
+    const onVis=()=>{if(document.hidden)flag("Tab/window switch detected");};
+    const onBlur=()=>flag("Browser window lost focus");
+    const noCtx=e=>e.preventDefault();
+    const onKey=e=>{if((e.ctrlKey||e.metaKey)&&"cvaus".includes(e.key.toLowerCase()))e.preventDefault();if(["F12","F5"].includes(e.key))e.preventDefault();};
+    document.addEventListener("visibilitychange",onVis);window.addEventListener("blur",onBlur);
+    document.addEventListener("contextmenu",noCtx);document.addEventListener("keydown",onKey);
+    document.addEventListener("copy",noCtx);document.addEventListener("paste",noCtx);
+    return()=>{document.removeEventListener("visibilitychange",onVis);window.removeEventListener("blur",onBlur);document.removeEventListener("contextmenu",noCtx);document.removeEventListener("keydown",onKey);document.removeEventListener("copy",noCtx);document.removeEventListener("paste",noCtx);};
+  },[screen,submit]);
+
+  useEffect(()=>{
+    if(screen!=="exam")return;
+    const fn=()=>{if(subRef.current)return;const qs=qRef.current,ans=aRef.current,v=vRef.current,tl=tlRef.current,st=stRef.current;let c=0;qs.forEach(q=>{if(ans[q.id]===q.ans)c++;});const fs=+Math.max(0,c-v*PENALTY_PT).toFixed(1);saveScore({name:st.name,sid:st.sid,rawScore:c,finalScore:fs,total:qs.length,pct:+((fs/qs.length)*100).toFixed(1),grade:grade(fs),violations:v,penalty:+(v*PENALTY_PT).toFixed(1),timeTaken:DURATION_S-tl,date:new Date().toLocaleString("en-NG"),topicMap:{},forced:true,autoMsg:"Browser closed during exam"});};
+    window.addEventListener("beforeunload",fn);return()=>window.removeEventListener("beforeunload",fn);
+  },[screen]);
+
+  const handleLogin=()=>{
+    setErr("");
+    if(lAdmin.trim()){if(lAdmin.trim()!==ADMIN_CODE){setErr("Invalid admin code.");return;}setAllScores(getAllScores());setScreen("admin");return;}
+    const name=lName.trim(),sid=lSid.trim().toUpperCase();
+    if(!name){setErr("Please enter your full name.");return;}
+    if(!sid){setErr("Please enter your Student ID.");return;}
+    const existing=getScore(sid);
+    if(existing){if(!checkRetake(sid)){setErr(`Student ID "${sid}" has already completed this test. Contact your teacher for a retake.`);return;}clearRetake(sid);}
+    const qs=pickQs();qRef.current=qs;stRef.current={name,sid};aRef.current={};tlRef.current=DURATION_S;vRef.current=0;subRef.current=false;
+    setStudent({name,sid});setQuestions(qs);setAnswers({});setTimeLeft(DURATION_S);setViol(0);setCurrent(0);setScreen("instructions");
+  };
+
+  const handleGrant=()=>{const s=gSid.trim().toUpperCase();if(!s)return;grantRetake(s);setGMsg(`✅ Retake granted for Student ID: ${s}`);setGSid("");setAllScores(getAllScores());};
+
+  const answered=Object.keys(answers).length,total=questions.length,q=questions[current];
+  const timerPct=(timeLeft/DURATION_S)*100,timerClr=timeLeft<300?"#ef4444":timeLeft<900?"#f59e0b":"#22c55e";
+  const filteredScores=allScores.filter(s=>!search||s.name.toLowerCase().includes(search.toLowerCase())||s.sid.toLowerCase().includes(search.toLowerCase()));
+
+  /* ── LOGIN ──────────────────────────────────────────── */
+  if(screen==="login")return(
+    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${NAV},#0e1c3a)`,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px",fontFamily:FF,userSelect:"none"}}>
+      <div style={{...card,padding:"38px",width:"100%",maxWidth:"420px"}}>
+        <div style={{textAlign:"center",marginBottom:"26px"}}>
+          <div style={{width:"64px",height:"64px",background:`linear-gradient(135deg,${NAV},#2d4f8a)`,borderRadius:"16px",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:"30px",marginBottom:"12px",boxShadow:"0 6px 20px rgba(26,46,90,0.35)"}}>📝</div>
+          <h1 style={{margin:"0 0 4px",fontSize:"19px",fontWeight:"800",color:NAV}}>Further Mathematics CBT</h1>
+          <p style={{margin:"0 0 2px",fontSize:"13px",color:"#555",fontWeight:"600"}}>SS 2A — Computer Based Test</p>
+          <p style={{margin:0,fontSize:"11px",color:"#999"}}>20 Questions  •  90 Minutes  •  6 Topics</p>
+        </div>
+        <label style={{display:"block",fontSize:"11px",fontWeight:"700",color:NAV,marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Full Name</label>
+        <input value={lName} onChange={e=>setLName(e.target.value)} placeholder="e.g. Adebayo Emmanuel" style={{...baseInp,marginBottom:"14px"}} onFocus={e=>e.target.style.borderColor=GOLD} onBlur={e=>e.target.style.borderColor="#e2e8f0"}/>
+        <label style={{display:"block",fontSize:"11px",fontWeight:"700",color:NAV,marginBottom:"5px",textTransform:"uppercase",letterSpacing:"0.5px"}}>Student ID</label>
+        <input value={lSid} onChange={e=>setLSid(e.target.value)} placeholder="e.g. SS2A001" style={{...baseInp,marginBottom:"16px",textTransform:"uppercase"}} onFocus={e=>e.target.style.borderColor=GOLD} onBlur={e=>e.target.style.borderColor="#e2e8f0"} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"14px"}}><div style={{flex:1,height:"1px",background:"#e8edf5"}}/><span style={{fontSize:"10px",color:"#bbb",whiteSpace:"nowrap"}}>or administrator access</span><div style={{flex:1,height:"1px",background:"#e8edf5"}}/></div>
+        <input value={lAdmin} onChange={e=>setLAdmin(e.target.value)} placeholder="Admin code" type="password" style={{...baseInp,marginBottom:"18px"}} onFocus={e=>e.target.style.borderColor=GOLD} onBlur={e=>e.target.style.borderColor="#e2e8f0"} onKeyDown={e=>e.key==="Enter"&&handleLogin()}/>
+        {err&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:"8px",padding:"10px 14px",fontSize:"12.5px",color:"#dc2626",marginBottom:"14px",lineHeight:"1.55"}}>{err}</div>}
+        <button onClick={handleLogin} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${NAV},#2d4f8a)`,color:"#fff",border:"none",borderRadius:"10px",fontSize:"15px",fontWeight:"700",cursor:"pointer",boxShadow:"0 4px 14px rgba(26,46,90,0.35)"}}>
+          {lAdmin?"🔐 Admin Login":"🚀 Enter Exam"}
+        </button>
+        <p style={{textAlign:"center",fontSize:"10.5px",color:"#c0c8d8",marginTop:"14px",lineHeight:"1.7"}}>Cheating is automatically detected and penalised.<br/>Your score is permanently recorded on submission.</p>
+      </div>
+    </div>
+  );
+
+  /* ── INSTRUCTIONS ───────────────────────────────────── */
+  if(screen==="instructions")return(
+    <div style={{minHeight:"100vh",background:BG,fontFamily:FF,padding:"16px",userSelect:"none"}}>
+      <div style={{maxWidth:"640px",margin:"0 auto"}}>
+        <div style={{background:`linear-gradient(135deg,${NAV},#2d4f8a)`,borderRadius:"14px",padding:"22px",color:"#fff",marginBottom:"14px",textAlign:"center"}}>
+          <p style={{margin:"0 0 3px",fontSize:"11px",opacity:0.65}}>Welcome to the exam,</p>
+          <h2 style={{margin:"0 0 3px",fontSize:"22px",fontWeight:"800"}}>{student.name}</h2>
+          <p style={{margin:0,fontSize:"11px",opacity:0.55}}>Student ID: {student.sid}</p>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"14px"}}>
+          {[["📋","20","Questions"],["⏱","90","Minutes"],["📚","6","Topics"]].map(([ic,v,l])=>(
+            <div key={l} style={{...card,padding:"14px",textAlign:"center"}}><div style={{fontSize:"22px"}}>{ic}</div><div style={{fontSize:"21px",fontWeight:"800",color:NAV}}>{v}</div><div style={{fontSize:"10px",color:"#888"}}>{l}</div></div>
+          ))}
+        </div>
+        <div style={{...card,padding:"20px",marginBottom:"14px"}}>
+          <h3 style={{margin:"0 0 12px",fontSize:"13px",fontWeight:"700",color:NAV}}>📜 Exam Rules & Anti-Cheat Policy</h3>
+          {[["✅","Each correct answer = 1 mark. Maximum score: 20 marks."],["✅","Navigate freely between questions using the question palette."],["✅","You may change any answer before final submission."],["⛔","Do NOT switch browser tabs — this triggers a cheat violation."],["⛔","Do NOT minimise or switch to another window — violation."],["⛔","Right-click, copy and paste are disabled throughout."],["⚠️",`Each violation deducts ${PENALTY_PT} mark from your final score.`],["🚫",`${MAX_VIOL} violations triggers immediate auto-submission.`],["⏰","Exam auto-submits when the 90-minute timer reaches zero."],["💾","Your score is saved and accessible to your teacher."]].map(([ic,tx],i)=>(
+            <div key={i} style={{display:"flex",gap:"9px",padding:"7px 0",borderBottom:i<9?"1px solid #f1f5f9":"none",alignItems:"flex-start"}}>
+              <span style={{fontSize:"12px",minWidth:"16px",lineHeight:"1.5"}}>{ic}</span>
+              <span style={{fontSize:"12px",color:"#374151",lineHeight:"1.5"}}>{tx}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{background:"#fffaed",border:`1.5px solid ${GOLD}`,borderRadius:"12px",padding:"16px",marginBottom:"18px"}}>
+          <p style={{margin:"0 0 9px",fontSize:"11px",fontWeight:"700",color:NAV}}>📚 Topics & Question Distribution</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"6px"}}>
+            {Object.entries(QUOTA).map(([t,n])=><span key={t} style={{background:NAV,color:GOLD,padding:"4px 10px",borderRadius:"20px",fontSize:"10.5px",fontWeight:"600"}}>{t} ({n}Q)</span>)}
+          </div>
+        </div>
+        <button onClick={()=>setScreen("exam")} style={{width:"100%",padding:"15px",background:`linear-gradient(135deg,${GOLD},#c98010)`,color:NAV,border:"none",borderRadius:"12px",fontSize:"16px",fontWeight:"800",cursor:"pointer",boxShadow:"0 4px 16px rgba(232,160,32,0.4)"}}>
+          🎯 START EXAM — TIMER BEGINS NOW
+        </button>
+        <p style={{textAlign:"center",fontSize:"10.5px",color:"#aaa",marginTop:"10px"}}>Questions are randomly selected and shuffled uniquely for each student.</p>
+      </div>
+    </div>
+  );
+
+  /* ── EXAM ────────────────────────────────────────────── */
+  if(screen==="exam"&&q)return(
+    <div style={{minHeight:"100vh",background:BG,fontFamily:FF,userSelect:"none",WebkitUserSelect:"none"}}>
+      {violMsg&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:"20px"}}>
+        <div style={{background:"#fff",borderRadius:"16px",padding:"30px",maxWidth:"380px",textAlign:"center",border:"4px solid #ef4444",boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+          <div style={{fontSize:"46px",marginBottom:"10px"}}>🚨</div>
+          <h2 style={{margin:"0 0 8px",color:"#ef4444",fontSize:"17px",fontWeight:"800"}}>ANTI-CHEAT VIOLATION</h2>
+          <p style={{margin:"0 0 20px",fontSize:"13px",color:"#374151",lineHeight:"1.65"}}>{violMsg}</p>
+          <button onClick={()=>setViolMsg("")} style={{padding:"10px 28px",background:"#ef4444",color:"#fff",border:"none",borderRadius:"8px",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>Acknowledged — Continue</button>
+        </div>
+      </div>}
+      {confirmSub&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.62)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999,padding:"20px"}}>
+        <div style={{background:"#fff",borderRadius:"16px",padding:"30px",maxWidth:"360px",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+          <div style={{fontSize:"42px",marginBottom:"8px"}}>🏁</div>
+          <h2 style={{margin:"0 0 8px",color:NAV,fontSize:"16px",fontWeight:"800"}}>Submit Your Exam?</h2>
+          <p style={{margin:"0 0 6px",fontSize:"13px",color:"#374151"}}>Answered: <strong style={{color:answered===total?"#16a34a":"#dc2626"}}>{answered}</strong> of <strong>{total}</strong></p>
+          {answered<total&&<p style={{margin:"0 0 16px",fontSize:"12px",color:"#dc2626"}}>⚠️ {total-answered} unanswered will score zero.</p>}
+          {answered===total&&<p style={{margin:"0 0 16px",fontSize:"12px",color:"#16a34a"}}>All questions answered — ready to submit!</p>}
+          <div style={{display:"flex",gap:"10px"}}><button onClick={()=>setConfirmSub(false)} style={{flex:1,padding:"10px",background:"#f1f5f9",border:"none",borderRadius:"8px",fontSize:"13px",fontWeight:"600",cursor:"pointer"}}>Cancel</button><button onClick={()=>submit(false)} style={{flex:2,padding:"10px",background:`linear-gradient(135deg,${GOLD},#c98010)`,color:NAV,border:"none",borderRadius:"8px",fontSize:"13px",fontWeight:"700",cursor:"pointer"}}>Yes, Submit Now</button></div>
+        </div>
+      </div>}
+      <div style={{background:`linear-gradient(135deg,${NAV},#2d4f8a)`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:"10px",position:"sticky",top:0,zIndex:100,boxShadow:"0 2px 12px rgba(0,0,0,0.25)"}}>
+        <div style={{color:"#fff",minWidth:0,flex:"1 1 0"}}><div style={{fontWeight:"700",fontSize:"12px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{student.name}</div><div style={{fontSize:"10px",opacity:0.6}}>ID: {student.sid}</div></div>
+        <div style={{textAlign:"center",flex:"0 0 auto"}}><div style={{fontSize:"24px",fontWeight:"900",color:timerClr,letterSpacing:"2px",textShadow:timeLeft<300?"0 0 10px rgba(239,68,68,0.5)":"none"}}>{fmt(timeLeft)}</div><div style={{fontSize:"8.5px",color:"rgba(255,255,255,0.45)"}}>REMAINING</div></div>
+        <div style={{color:"#fff",textAlign:"right",flex:"1 1 0"}}><div style={{fontSize:"11px",fontWeight:"700"}}>{answered}/{total} answered</div>{viol>0&&<div style={{fontSize:"10px",color:"#fca5a5"}}>⚠️ {viol} violation{viol>1?"s":""}</div>}</div>
+      </div>
+      <div style={{height:"4px",background:"rgba(0,0,0,0.08)"}}><div style={{height:"100%",width:`${timerPct}%`,background:timerClr,transition:"width 1s linear"}}/></div>
+      <div style={{maxWidth:"800px",margin:"0 auto",padding:"14px"}}>
+        <div style={{...card,padding:"13px",marginBottom:"12px"}}>
+          <p style={{margin:"0 0 8px",fontSize:"9.5px",fontWeight:"700",color:"#888",textTransform:"uppercase",letterSpacing:"0.5px"}}>Question Navigator — tap to jump</p>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"5px"}}>
+            {questions.map((qq,i)=><button key={qq.id} onClick={()=>setCurrent(i)} style={{width:"28px",height:"28px",borderRadius:"6px",border:"none",cursor:"pointer",fontSize:"10.5px",fontWeight:"700",background:i===current?NAV:answers[qq.id]?"#22c55e":"#f1f5f9",color:(i===current||answers[qq.id])?"#fff":"#374151",outline:i===current?`2px solid ${GOLD}`:"none",outlineOffset:"2px"}}>{i+1}</button>)}
+          </div>
+          <div style={{display:"flex",gap:"14px",marginTop:"8px"}}>
+            {[["#22c55e","Answered"],["#f1f5f9","Not yet"],[NAV,"Current"]].map(([c,l])=><div key={l} style={{display:"flex",alignItems:"center",gap:"4px"}}><div style={{width:"9px",height:"9px",borderRadius:"2px",background:c}}/><span style={{fontSize:"9.5px",color:"#888"}}>{l}</span></div>)}
+          </div>
+        </div>
+        <div style={{...card,padding:"22px",marginBottom:"12px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"13px"}}>
+            <span style={{background:NAV,color:GOLD,padding:"3px 10px",borderRadius:"20px",fontSize:"10px",fontWeight:"700"}}>{q.topic}</span>
+            <span style={{fontSize:"11px",color:"#aaa",fontWeight:"600"}}>Q{current+1} of {total}</span>
+          </div>
+          <p style={{margin:"0 0 20px",fontSize:"15px",color:NAV,fontWeight:"600",lineHeight:"1.7"}}>{q.q}</p>
+          <div style={{display:"flex",flexDirection:"column",gap:"9px"}}>
+            {q.sOpts.map((opt,oi)=>{const letter=["A","B","C","D"][oi],sel=answers[q.id]===opt;return(
+              <div key={oi} onClick={()=>{const na={...aRef.current,[q.id]:opt};setAnswers(na);aRef.current=na;}} style={{display:"flex",alignItems:"center",gap:"12px",padding:"11px 15px",borderRadius:"10px",border:`2px solid ${sel?NAV:"#e8edf5"}`,background:sel?"#eef1f8":"#fff",cursor:"pointer",transition:"all 0.12s",boxShadow:sel?"0 2px 8px rgba(26,46,90,0.12)":"none"}}>
+                <div style={{width:"28px",height:"28px",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:"800",fontSize:"11.5px",flexShrink:0,background:sel?NAV:"#f1f5f9",color:sel?GOLD:"#555"}}>{letter}</div>
+                <span style={{fontSize:"13.5px",color:sel?NAV:"#374151",fontWeight:sel?"600":"400",lineHeight:"1.45",flex:1}}>{opt}</span>
+                {sel&&<span style={{color:"#16a34a",fontSize:"16px",fontWeight:"700"}}>✓</span>}
+              </div>
+            );})}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:"9px",marginBottom:"9px"}}>
+          <button onClick={()=>setCurrent(c=>Math.max(0,c-1))} disabled={current===0} style={{flex:1,padding:"11px",background:"#fff",border:"2px solid #e2e8f0",borderRadius:"9px",fontSize:"13px",fontWeight:"600",color:"#374151",cursor:current===0?"not-allowed":"pointer",opacity:current===0?0.4:1}}>← Prev</button>
+          {current<total-1?<button onClick={()=>setCurrent(c=>c+1)} style={{flex:2,padding:"11px",background:NAV,border:"none",borderRadius:"9px",fontSize:"13px",fontWeight:"600",color:"#fff",cursor:"pointer"}}>Next →</button>:<button onClick={()=>setConfirmSub(true)} style={{flex:2,padding:"11px",background:`linear-gradient(135deg,${GOLD},#c98010)`,border:"none",borderRadius:"9px",fontSize:"13px",fontWeight:"700",color:NAV,cursor:"pointer"}}>🏁 Submit Exam</button>}
+        </div>
+        {current<total-1&&<button onClick={()=>setConfirmSub(true)} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${GOLD},#c98010)`,border:"none",borderRadius:"9px",fontSize:"13px",fontWeight:"700",color:NAV,cursor:"pointer"}}>🏁 Submit Exam ({answered}/{total} answered)</button>}
+      </div>
+    </div>
+  );
+
+  /* ── RESULT ──────────────────────────────────────────── */
+  if(screen==="result"&&result){
+    const gcol=gc(result.grade),emoji=result.grade==="A"?"🏆":result.grade==="B"?"🥈":result.grade==="C"?"🥉":"📊";
+    return(
+      <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${NAV},#0e1c3a)`,padding:"22px",fontFamily:FF,userSelect:"none"}}>
+        <div style={{maxWidth:"560px",margin:"0 auto"}}>
+          <div style={{textAlign:"center",color:"#fff",marginBottom:"16px"}}><div style={{fontSize:"52px",marginBottom:"6px"}}>{emoji}</div><h1 style={{margin:"0 0 3px",fontSize:"21px",fontWeight:"800"}}>Exam Completed!</h1><p style={{margin:0,fontSize:"11px",opacity:0.6}}>{result.name} • {result.sid}</p></div>
+          <div style={{...card,padding:"26px",marginBottom:"13px",textAlign:"center"}}>
+            <div style={{fontSize:"56px",fontWeight:"900",color:gcol,lineHeight:1}}>{result.finalScore.toFixed(1)}<span style={{fontSize:"22px",color:"#ccc"}}>/{result.total}</span></div>
+            <div style={{fontSize:"25px",fontWeight:"800",color:gcol,margin:"4px 0 10px"}}>{result.pct}%</div>
+            <div style={{display:"inline-block",background:gcol,color:"#fff",padding:"5px 18px",borderRadius:"20px",fontSize:"17px",fontWeight:"800",marginBottom:"16px"}}>Grade {result.grade}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"9px",marginBottom:"12px"}}>
+              {[["✅ Correct",result.rawScore],["❌ Wrong",result.total-result.rawScore],["⚠️ Violations",result.violations]].map(([l,v])=>(
+                <div key={l} style={{background:"#f8fafc",borderRadius:"9px",padding:"10px"}}><div style={{fontSize:"19px",fontWeight:"800",color:NAV}}>{v}</div><div style={{fontSize:"9.5px",color:"#777",marginTop:"2px"}}>{l}</div></div>
+              ))}
+            </div>
+            {result.penalty>0&&<p style={{margin:"0 0 4px",fontSize:"12px",color:"#ef4444"}}>Penalty: −{result.penalty} mark(s) for {result.violations} violation(s)</p>}
+            <p style={{margin:"6px 0 0",fontSize:"11px",color:"#aaa"}}>Time: {Math.floor(result.timeTaken/60)}m {result.timeTaken%60}s • {result.date}</p>
+            {result.autoMsg&&<p style={{margin:"5px 0 0",fontSize:"11px",color:"#f97316"}}>ℹ️ {result.autoMsg}</p>}
+          </div>
+          <div style={{...card,padding:"20px",marginBottom:"13px"}}>
+            <h3 style={{margin:"0 0 14px",fontSize:"14px",fontWeight:"700",color:NAV}}>📊 Performance by Topic</h3>
+            {Object.entries(result.topicMap).map(([t,{right,total:tot}])=>{const pct=tot>0?Math.round(right/tot*100):0;return(
+              <div key={t} style={{marginBottom:"11px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:"4px"}}><span style={{fontSize:"12px",color:"#374151",fontWeight:"600"}}>{t}</span><span style={{fontSize:"12px",color:"#888",fontWeight:"600"}}>{right}/{tot} ({pct}%)</span></div>
+                <div style={{height:"8px",background:"#f1f5f9",borderRadius:"4px",overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:pct>=70?"#22c55e":pct>=50?"#f59e0b":"#ef4444",borderRadius:"4px"}}/></div>
+              </div>
+            );})}
+          </div>
+          <div style={{background:"rgba(255,255,255,0.07)",borderRadius:"12px",padding:"16px",textAlign:"center",color:"rgba(255,255,255,0.65)",fontSize:"12px",lineHeight:"1.75"}}>
+            📋 Your score has been saved and is accessible to your teacher.<br/>A retake requires your teacher's permission.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── ADMIN ───────────────────────────────────────────── */
+  if(screen==="admin"){
+    const avg=allScores.length?(allScores.reduce((a,s)=>a+s.finalScore,0)/allScores.length).toFixed(1):"—";
+    const passes=allScores.filter(s=>["A","B","C"].includes(s.grade)).length;
+    const sorted=[...filteredScores].sort((a,b)=>b.finalScore-a.finalScore);
+    const gc2=g=>allScores.filter(s=>s.grade===g).length;
+    return(
+      <div style={{minHeight:"100vh",background:BG,fontFamily:FF,padding:"18px",userSelect:"none"}}>
+        <div style={{maxWidth:"1000px",margin:"0 auto"}}>
+          <div style={{background:`linear-gradient(135deg,${NAV},#2d4f8a)`,borderRadius:"13px",padding:"18px 22px",marginBottom:"16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 4px 16px rgba(26,46,90,0.25)",flexWrap:"wrap",gap:"12px"}}>
+            <div><h1 style={{margin:"0 0 3px",fontSize:"17px",fontWeight:"800",color:"#fff"}}>🔐 Teacher Admin Dashboard</h1><p style={{margin:0,fontSize:"11px",color:"rgba(255,255,255,0.55)"}}>SS 2A Further Mathematics CBT — Score Portal</p></div>
+            <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+              <button onClick={()=>exportCSV(allScores)} style={{padding:"7px 14px",background:GOLD,color:NAV,border:"none",borderRadius:"7px",fontSize:"12px",fontWeight:"700",cursor:"pointer"}}>⬇️ Export CSV</button>
+              <button onClick={()=>{setAllScores(getAllScores());setGMsg("✅ Refreshed.");}} style={{padding:"7px 14px",background:"rgba(255,255,255,0.12)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",borderRadius:"7px",fontSize:"12px",cursor:"pointer"}}>🔄 Refresh</button>
+              <button onClick={()=>{setScreen("login");setLAdmin("");setLName("");setLSid("");setErr("");setGMsg("");}} style={{padding:"7px 14px",background:"rgba(255,255,255,0.1)",color:"#fff",border:"1px solid rgba(255,255,255,0.2)",borderRadius:"7px",fontSize:"12px",cursor:"pointer"}}>← Log Out</button>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px",marginBottom:"14px"}}>
+            {[["👥",allScores.length,"Participants"],["✅",passes,"Passed (C+)"],["📊",avg,"Avg Score"],["🏆",gc2("A"),"Grade A"]].map(([ic,v,l])=>(
+              <div key={l} style={{...card,padding:"14px",textAlign:"center"}}><div style={{fontSize:"20px"}}>{ic}</div><div style={{fontSize:"22px",fontWeight:"800",color:NAV}}>{v}</div><div style={{fontSize:"10px",color:"#888"}}>{l}</div></div>
+            ))}
+          </div>
+          {allScores.length>0&&<div style={{...card,padding:"16px",marginBottom:"14px"}}>
+            <p style={{margin:"0 0 10px",fontSize:"12px",fontWeight:"700",color:NAV}}>📈 Grade Distribution</p>
+            <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}>
+              {["A","B","C","D","F"].map(g=>{const n=gc2(g),pct=allScores.length?Math.round(n/allScores.length*100):0;return(
+                <div key={g} style={{flex:"1 1 60px",background:"#f8fafc",borderRadius:"9px",padding:"10px",textAlign:"center",borderTop:`3px solid ${gc(g)}`}}>
+                  <div style={{fontSize:"16px",fontWeight:"800",color:gc(g)}}>{n}</div>
+                  <div style={{fontSize:"9.5px",color:"#888"}}>Grade {g} ({pct}%)</div>
+                </div>
+              );})}
+            </div>
+          </div>}
+          <div style={{...card,padding:"18px",marginBottom:"14px"}}>
+            <h3 style={{margin:"0 0 12px",fontSize:"13px",fontWeight:"700",color:NAV}}>🔁 Grant Retake Permission</h3>
+            <div style={{display:"flex",gap:"9px",flexWrap:"wrap",alignItems:"flex-end"}}>
+              <div style={{flex:"1 1 180px"}}><label style={{display:"block",fontSize:"10px",fontWeight:"700",color:NAV,marginBottom:"4px",textTransform:"uppercase",letterSpacing:"0.4px"}}>Student ID</label><input value={gSid} onChange={e=>setGSid(e.target.value)} placeholder="e.g. SS2A001" style={{...baseInp,textTransform:"uppercase"}} onFocus={e=>e.target.style.borderColor=GOLD} onBlur={e=>e.target.style.borderColor="#e2e8f0"} onKeyDown={e=>e.key==="Enter"&&handleGrant()}/></div>
+              <button onClick={handleGrant} style={{padding:"10px 18px",background:NAV,color:"#fff",border:"none",borderRadius:"8px",fontSize:"13px",fontWeight:"600",cursor:"pointer",whiteSpace:"nowrap",height:"40px",marginTop:"18px"}}>✅ Grant Retake</button>
+            </div>
+            {gMsg&&<p style={{margin:"10px 0 0",fontSize:"12px",color:"#16a34a",fontWeight:"600"}}>{gMsg}</p>}
+            <p style={{margin:"8px 0 0",fontSize:"10.5px",color:"#aaa"}}>Granting retake clears the student's previous score so they can log in again.</p>
+          </div>
+          <div style={{...card,overflow:"hidden"}}>
+            <div style={{padding:"13px 18px",borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
+              <h3 style={{margin:0,fontSize:"13px",fontWeight:"700",color:NAV}}>📋 Results — {allScores.length} participant(s)</h3>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search by name or ID…" style={{...baseInp,width:"220px",padding:"7px 12px",fontSize:"12px"}} onFocus={e=>e.target.style.borderColor=GOLD} onBlur={e=>e.target.style.borderColor="#e2e8f0"}/>
+            </div>
+            {allScores.length===0?(
+              <div style={{padding:"40px",textAlign:"center",color:"#bbb"}}><div style={{fontSize:"36px",marginBottom:"8px"}}>📭</div><p style={{margin:0,fontSize:"13px"}}>No students have completed the exam yet.</p></div>
+            ):(
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <thead><tr style={{background:NAV,color:"#fff"}}>{["#","Name","Student ID","Score","Pct","Grade","Violations","Penalty","Time Taken","Date"].map(h=><th key={h} style={{padding:"9px 11px",textAlign:"left",fontSize:"10.5px",fontWeight:"700",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+                  <tbody>{sorted.map((s,i)=>(
+                    <tr key={s.sid} style={{background:i%2===0?"#fff":"#f8fafc",borderBottom:"1px solid #f1f5f9"}}>
+                      <td style={{padding:"9px 11px",fontSize:"11px",color:"#aaa",fontWeight:"600"}}>{i+1}</td>
+                      <td style={{padding:"9px 11px",fontSize:"12.5px",fontWeight:"700",color:NAV}}>{s.name}</td>
+                      <td style={{padding:"9px 11px",fontSize:"11px",color:"#666",fontFamily:"monospace"}}>{s.sid}</td>
+                      <td style={{padding:"9px 11px",fontSize:"13px",fontWeight:"800",color:NAV}}>{s.finalScore?.toFixed(1)}/{s.total}</td>
+                      <td style={{padding:"9px 11px",fontSize:"12px",fontWeight:"700",color:gc(s.grade)}}>{s.pct}%</td>
+                      <td style={{padding:"9px 11px"}}><span style={{background:gc(s.grade),color:"#fff",padding:"2px 9px",borderRadius:"12px",fontSize:"11px",fontWeight:"800"}}>{s.grade}</span></td>
+                      <td style={{padding:"9px 11px",fontSize:"12px",fontWeight:"700",color:s.violations>0?"#ef4444":"#16a34a",textAlign:"center"}}>{s.violations}</td>
+                      <td style={{padding:"9px 11px",fontSize:"11.5px",color:s.penalty>0?"#ef4444":"#aaa",fontWeight:s.penalty>0?"700":"400"}}>{s.penalty>0?`−${s.penalty}`:"—"}</td>
+                      <td style={{padding:"9px 11px",fontSize:"11px",color:"#888",whiteSpace:"nowrap"}}>{Math.floor((s.timeTaken||0)/60)}m {(s.timeTaken||0)%60}s</td>
+                      <td style={{padding:"9px 11px",fontSize:"10.5px",color:"#bbb",whiteSpace:"nowrap"}}>{s.date}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <p style={{textAlign:"center",fontSize:"10.5px",color:"#aaa",marginTop:"14px",lineHeight:"1.7"}}>
+            Scores are stored in this browser. Use Export CSV to save results.<br/>
+            ⚠️ For cross-device access, open the admin panel on the exam computer, or share exported CSV.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
