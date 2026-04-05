@@ -17,6 +17,27 @@ input,button,select{font-family:inherit;}
 </head>
 <body>
 <div id="root"></div>
+   <!-- Firebase SDK (MODERN VERSION) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, getDocs, deleteDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "XXXX",
+    appId: "XXXX"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Make globally accessible
+  window.db = db;
+  window.fb = { doc, setDoc, getDoc, getDocs, deleteDoc, collection };
+</script>
 <script type="text/babel">
 const{useState,useEffect,useRef,useCallback}=React;
 
@@ -139,49 +160,109 @@ const genId=()=>{let id="";for(let i=0;i<6;i++)id+=ID_CHARS[Math.floor(Math.rand
 const genUniqueId=used=>{let id,tries=0;do{id=genId();tries++;}while(used.has(id)&&tries<9999);return id;};
 
 // ── DYNAMIC REGISTRY HELPERS ─────────────────────────────────────
-const getDynRegistry  =async()=>(await stor.get(DYN_REG_KEY))||{};
-const saveDynRegistry =async reg=>stor.set(DYN_REG_KEY,reg);
-const addStudent      =async(sid,name)=>{const r=await getDynRegistry();r[sid]={name,added:new Date().toLocaleString("en-NG")};await saveDynRegistry(r);};
-const removeStudent   =async sid=>{const r=await getDynRegistry();delete r[sid];await saveDynRegistry(r);};
+const getDynRegistry = async () => {
+  const snap = await window.fb.getDocs(
+    window.fb.collection(window.db, "registry")
+  );
+  const out = {};
+  snap.forEach(doc => out[doc.id] = doc.data());
+  return out;
+};
+
+const addStudent = async (sid, name) => {
+  await window.fb.setDoc(
+    window.fb.doc(window.db, "registry", sid),
+    {
+      name,
+      added: new Date().toLocaleString("en-NG")
+    }
+  );
+};
+
+const removeStudent = async sid => {
+  await window.fb.deleteDoc(
+    window.fb.doc(window.db, "registry", sid)
+  );
+};
 
 // unified async storage with cross-device shared flag
-const stor={
+/* ═════════ FIREBASE STORAGE ═════════ */
+const stor = {
   async get(k){
     try{
-      if(window.storage){const r=await window.storage.get(k,true);return r?JSON.parse(r.value):null;}
-      const v=localStorage.getItem(k);return v?JSON.parse(v):null;
-    }catch{return null;}
+      const ref = window.fb.doc(window.db, "cbt_data", k);
+      const snap = await window.fb.getDoc(ref);
+      return snap.exists() ? snap.data().value : null;
+    }catch{
+      return null;
+    }
   },
+
   async set(k,v){
     try{
-      if(window.storage){await window.storage.set(k,JSON.stringify(v),true);return;}
-      localStorage.setItem(k,JSON.stringify(v));
+      const ref = window.fb.doc(window.db, "cbt_data", k);
+      await window.fb.setDoc(ref, { value: v });
     }catch{}
   },
+
   async del(k){
     try{
-      if(window.storage){await window.storage.delete(k,true);return;}
-      localStorage.removeItem(k);
+      const ref = window.fb.doc(window.db, "cbt_data", k);
+      await window.fb.deleteDoc(ref);
     }catch{}
-  },
+  }
+};
+   
+const saveScore = async d => {
+  await window.fb.setDoc(
+    window.fb.doc(window.db, "scores", d.sid),
+    d
+  );
+};
+const getScore = async sid => {
+  const ref = window.fb.doc(window.db, "scores", sid);
+  const snap = await window.fb.getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+const getAllScores = async () => {
+  const snap = await window.fb.getDocs(
+    window.fb.collection(window.db, "scores")
+  );
+  return snap.docs.map(doc => doc.data());
+};
+const grantRetake = async sid => {
+  await window.fb.setDoc(
+    window.fb.doc(window.db, "retakes", sid),
+    { ok: true }
+  );
 };
 
-const saveScore=async d=>{
-  await stor.set(scoreKey(d.sid),d);
-  const r=(await stor.get(ROSTER_KEY))||[];
-  if(!r.includes(d.sid))await stor.set(ROSTER_KEY,[...r,d.sid]);
+const checkRetake = async sid => {
+  const ref = window.fb.doc(window.db, "retakes", sid);
+  const snap = await window.fb.getDoc(ref);
+  return snap.exists() && snap.data().ok === true;
 };
-const getScore    =sid=>stor.get(scoreKey(sid));
-const getAllScores =async()=>{const r=(await stor.get(ROSTER_KEY))||[];const out=[];for(const s of r){const sc=await stor.get(scoreKey(s));if(sc)out.push(sc);}return out;};
-const grantRetake =sid=>stor.set(retakeKey(sid),{ok:true});
-const checkRetake =async sid=>{const v=await stor.get(retakeKey(sid));return v&&v.ok===true;};
 const clearRetake =async sid=>{await stor.del(scoreKey(sid));await stor.del(retakeKey(sid));const r=(await stor.get(ROSTER_KEY))||[];await stor.set(ROSTER_KEY,r.filter(s=>s!==sid));};
 
 // session token: prevents same ID being used on two devices simultaneously
-const setSession  =async(sid,token)=>stor.set(sessionKey(sid),{token,ts:Date.now()});
-const getSession  =sid=>stor.get(sessionKey(sid));
-const clearSession=sid=>stor.del(sessionKey(sid));
+const setSession = async (sid, token) => {
+  await window.fb.setDoc(
+    window.fb.doc(window.db, "sessions", sid),
+    { token, ts: Date.now() }
+  );
+};
 
+const getSession = async sid => {
+  const ref = window.fb.doc(window.db, "sessions", sid);
+  const snap = await window.fb.getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+};
+
+const clearSession = async sid => {
+  await window.fb.deleteDoc(
+    window.fb.doc(window.db, "sessions", sid)
+  );
+};
 /* ══════════════════════════════════════════════════════════
    CSV EXPORT
 ══════════════════════════════════════════════════════════ */
